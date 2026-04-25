@@ -316,31 +316,60 @@ async function main() {
   console.log(`Confidence: ${confidence}`);
 
   if (confidence === "High") {
+    const records = [
+      {
+        metricKey: "industry.pv.retail.annual",
+        metricName: "PV retail sales — annual (FADA)",
+        year: "FY25",
+        value: classified.fy25.value,
+        unit: "units",
+        dataType: "Actual",
+        sourceName: "FADA — FY25 and March 2025 Vehicle Retail Data",
+        sourceUrl: FADA_PDF_URL,
+        confidence: "High",
+        notes: `Retail registrations basis (not SIAM wholesale). Extracted from FADA press-release PDF; raw token "${classified.fy25.raw}".`,
+      },
+    ];
+    if (classified.fy24) {
+      records.push({
+        metricKey: "industry.pv.retail.annual",
+        metricName: "PV retail sales — annual (FADA)",
+        year: "FY24",
+        value: classified.fy24.value,
+        unit: "units",
+        dataType: "Actual",
+        sourceName: "FADA — FY25 and March 2025 Vehicle Retail Data",
+        sourceUrl: FADA_PDF_URL,
+        confidence: "High",
+        notes: `Retail registrations basis (not SIAM wholesale). Prior-year comparison row from same FADA PDF; raw token "${classified.fy24.raw}".`,
+      });
+    }
+    if (classified.growth) {
+      records.push({
+        metricKey: "industry.pv.retail.growth.yoy",
+        metricName: "PV retail YoY growth (FADA)",
+        year: "FY25",
+        value: classified.growth.value,
+        unit: "%",
+        dataType: "Actual",
+        sourceName: "FADA — FY25 and March 2025 Vehicle Retail Data",
+        sourceUrl: FADA_PDF_URL,
+        confidence: "High",
+        notes: `As reported by FADA. Cross-checks with FY24/FY25 unit ratio.`,
+      });
+    }
     const out = {
       sourceName: "FADA FY25 and March 2025 Vehicle Retail Data",
       sourceUrl: FADA_PDF_URL,
       sourceType: "Public",
       extractedAt: new Date().toISOString(),
-      records: [
-        {
-          metricKey: "industry.pv.retail.sales.annual",
-          metricName: "PV retail sales — annual",
-          year: "FY25",
-          value: classified.fy25.value,
-          unit: "units",
-          dataType: "Actual",
-          sourceName: "FADA",
-          sourceUrl: FADA_PDF_URL,
-          confidence: "High",
-          notes: `Extracted from FADA press-release PDF. Raw token "${classified.fy25.raw}". YoY growth co-located: ${classified.growth ? `${classified.growth.value}%` : "n/a"}.`,
-        },
-      ],
+      records,
     };
     const outPath = join(PUBLIC_DATA_DIR, NORMALIZED_FILE);
     await writeFile(outPath, JSON.stringify(out, null, 2), "utf8");
-    console.log(`\nWrote normalized: ${outPath}`);
+    console.log(`\nWrote normalized: ${outPath} (${records.length} records)`);
     console.log(
-      "Next step: run `npm run extract:fada` locally and confirm the value, then ask Claude to wire this single Actual datapoint into industryData.ts."
+      "Next step: confirm the values in the file, then ask Claude to wire them into industryData.ts."
     );
     process.exit(0);
   }

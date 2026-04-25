@@ -1,0 +1,44 @@
+{
+  "sourceName": "FADA FY25 and March 2025 Vehicle Retail Data",
+  "sourceUrl": "https://www.fada.in/images/press-release/167f3463b1a212FADA%20Releases%20FY%202025%20and%20March%202025%20Vehicle%20Retail%20Data.pdf",
+  "sourceType": "Public",
+  "extractedAt": "2026-04-25T00:00:00.000Z",
+  "records": [
+    {
+      "metricKey": "industry.pv.retail.annual",
+      "metricName": "PV retail sales — annual (FADA)",
+      "year": "FY25",
+      "value": 4153432,
+      "unit": "units",
+      "dataType": "Actual",
+      "sourceName": "FADA — FY25 and March 2025 Vehicle Retail Data",
+      "sourceUrl": "https://www.fada.in/images/press-release/167f3463b1a212FADA%20Releases%20FY%202025%20and%20March%202025%20Vehicle%20Retail%20Data.pdf",
+      "confidence": "High",
+      "notes": "Retail registrations basis (not SIAM wholesale). Extracted from FADA press-release PDF; raw token \"41,53,432\"."
+    },
+    {
+      "metricKey": "industry.pv.retail.annual",
+      "metricName": "PV retail sales — annual (FADA)",
+      "year": "FY24",
+      "value": 3960602,
+      "unit": "units",
+      "dataType": "Actual",
+      "sourceName": "FADA — FY25 and March 2025 Vehicle Retail Data",
+      "sourceUrl": "https://www.fada.in/images/press-release/167f3463b1a212FADA%20Releases%20FY%202025%20and%20March%202025%20Vehicle%20Retail%20Data.pdf",
+      "confidence": "High",
+      "notes": "Retail registrations basis (not SIAM wholesale). Prior-year comparison row from same FADA PDF; raw token \"39,60,602\"."
+    },
+    {
+      "metricKey": "industry.pv.retail.growth.yoy",
+      "metricName": "PV retail YoY growth (FADA)",
+      "year": "FY25",
+      "value": 4.87,
+      "unit": "%",
+      "dataType": "Actual",
+      "sourceName": "FADA — FY25 and March 2025 Vehicle Retail Data",
+      "sourceUrl": "https://www.fada.in/images/press-release/167f3463b1a212FADA%20Releases%20FY%202025%20and%20March%202025%20Vehicle%20Retail%20Data.pdf",
+      "confidence": "High",
+      "notes": "As reported by FADA. Cross-checks with FY24/FY25 unit ratio."
+    }
+  ]
+}

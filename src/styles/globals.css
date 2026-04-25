@@ -486,6 +486,13 @@ h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: 
   color: var(--text-muted);
 }
 
+.kpi__note {
+  font-size: 11px;
+  color: var(--accent-blue);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 .kpi--info { border-left-color: var(--accent-blue); }
 .kpi--positive { border-left-color: var(--pos-600); }
 .kpi--warning { border-left-color: #b3651a; }

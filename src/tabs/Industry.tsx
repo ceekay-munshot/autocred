@@ -11,11 +11,34 @@ import {
   RiskBadge,
 } from "../components/Badge";
 import EmptyState from "../components/EmptyState";
+import LineTrendChart, { type TrendPoint } from "../components/LineTrendChart";
 import { formatLastUpdated } from "../utils/dataQualityHelpers";
 import type { DataQualityRecord } from "../types/dataQuality";
 
 const DASH = "—";
 
+const indianInt = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
+const indianDec = new Intl.NumberFormat("en-IN", {
+  maximumFractionDigits: 2,
+});
+
+function formatValue(value: DataQualityRecord["value"], unit: string): string {
+  if (value === null || value === undefined || value === "") return DASH;
+  if (typeof value === "number") {
+    return unit === "%" ? indianDec.format(value) : indianInt.format(value);
+  }
+  return String(value);
+}
+
+function isPlottable(record: DataQualityRecord): boolean {
+  return (
+    typeof record.value === "number" &&
+    Number.isFinite(record.value) &&
+    (record.dataType === "Actual" || record.dataType === "Calculated")
+  );
+}
+
+/** Latest record (any value) by year string ordering. */
 function findLatestActual(metricKey: string): DataQualityRecord | undefined {
   return industryRecords
     .filter(
@@ -28,30 +51,43 @@ function findLatestActual(metricKey: string): DataQualityRecord | undefined {
     .sort((a, b) => String(b.year).localeCompare(String(a.year)))[0];
 }
 
-function latestKpi(metricKey: string): { value: string; hint?: string } {
-  const r = findLatestActual(metricKey);
-  if (!r) return { value: DASH, hint: "Not yet wired to a public source" };
-  return {
-    value: `${r.value} ${r.unit}`.trim(),
-    hint: `${r.year} • ${r.dataType}`,
-  };
+/** Sorted ascending series of plottable points for a metric. */
+function getSeries(metricKey: string): TrendPoint[] {
+  return industryRecords
+    .filter((r) => r.metricKey === metricKey && isPlottable(r))
+    .map((r) => ({ year: String(r.year), value: r.value as number }))
+    .sort((a, b) => a.year.localeCompare(b.year));
 }
 
-const CHART_SECTIONS: { key: string; title: string; metricKey: string }[] = [
+const CHART_SECTIONS: {
+  key: string;
+  title: string;
+  metricKey: string;
+  unit: string;
+}[] = [
   {
-    key: "pv-volume",
-    title: "PV Industry Volume Trend",
+    key: "pv-retail",
+    title: "PV Retail Sales Trend (FADA)",
+    metricKey: "industry.pv.retail.annual",
+    unit: "units",
+  },
+  {
+    key: "pv-wholesale",
+    title: "PV Industry Wholesale Trend (SIAM)",
     metricKey: "industry.pv.wholesale.annual",
+    unit: "units",
   },
   {
     key: "ev-share",
     title: "EV Share Trend",
     metricKey: "industry.ev.share.annual",
+    unit: "%",
   },
   {
     key: "exports",
     title: "Export Volume Trend",
     metricKey: "industry.pv.exports.annual",
+    unit: "units",
   },
 ];
 
@@ -68,10 +104,17 @@ export default function Industry() {
     () => industryRecords.filter((r) => r.dataType === "NotAvailable").length,
     []
   );
+  const actualCount = useMemo(
+    () => industryRecords.filter((r) => r.dataType === "Actual").length,
+    []
+  );
 
-  const retail = latestKpi("industry.pv.retail.annual");
-  const evShare = latestKpi("industry.ev.share.annual");
-  const exports = latestKpi("industry.pv.exports.annual");
+  const retailLatest = findLatestActual("industry.pv.retail.annual");
+  const evShareLatest = findLatestActual("industry.ev.share.annual");
+  const exportsLatest = findLatestActual("industry.pv.exports.annual");
+  const retailGrowthLatest = findLatestActual(
+    "industry.pv.retail.growth.yoy"
+  );
 
   const latestSourceYear = useMemo(() => {
     const withValue = industryRecords.filter(
@@ -99,15 +142,18 @@ export default function Industry() {
       <div className="card">
         <div className="panel-title">
           <h2>Industry</h2>
-          <small>Indian Passenger Vehicle — wholesale, retail, EV, structural</small>
+          <small>
+            Indian Passenger Vehicle — wholesale, retail, EV, structural
+          </small>
         </div>
         <div className="callout">
           This tab separates the four kinds of industry datapoints:{" "}
-          <strong>wholesale</strong> (SIAM / company press), <strong>retail</strong>{" "}
-          (VAHAN, FADA), <strong>calculated</strong> (e.g. EV share = EV / PV),
-          and <strong>paid / manual</strong> (capacity, capex, PAT, mix-by-revenue,
-          model-wise rankings). Numbers only appear once an analyst has wired
-          them to a primary source — nothing is interpolated.
+          <strong>wholesale</strong> (SIAM / company press),{" "}
+          <strong>retail</strong> (VAHAN, FADA),{" "}
+          <strong>calculated</strong> (e.g. EV share = EV / PV), and{" "}
+          <strong>paid / manual</strong> (capacity, capex, PAT,
+          mix-by-revenue, model-wise rankings). Numbers only appear once an
+          analyst has wired them to a primary source — nothing is interpolated.
         </div>
       </div>
 
@@ -118,24 +164,67 @@ export default function Industry() {
         </div>
         <div className="kpi-grid">
           <KpiCard
-            label="PV retail (latest)"
-            value={retail.value}
-            hint={retail.hint}
+            label="PV Retail (latest)"
+            value={
+              retailLatest
+                ? `${formatValue(retailLatest.value, retailLatest.unit)} ${retailLatest.unit}`
+                : DASH
+            }
+            hint={
+              retailLatest ? (
+                <>
+                  {String(retailLatest.year)} • Source: FADA
+                  {retailGrowthLatest
+                    ? ` • YoY ${formatValue(retailGrowthLatest.value, "%")}%`
+                    : ""}
+                </>
+              ) : (
+                "Not yet wired to a public source"
+              )
+            }
+            footnote={
+              retailLatest ? "Retail basis, not wholesale dispatch." : undefined
+            }
+            tone={retailLatest ? "positive" : "neutral"}
           />
           <KpiCard
             label="EV share of PV (latest)"
-            value={evShare.value}
-            hint={evShare.hint}
+            value={
+              evShareLatest
+                ? `${formatValue(evShareLatest.value, evShareLatest.unit)} ${evShareLatest.unit}`
+                : DASH
+            }
+            hint={
+              evShareLatest
+                ? `${evShareLatest.year} • ${evShareLatest.dataType}`
+                : "Not yet wired to a public source"
+            }
           />
           <KpiCard
             label="PV exports (latest)"
-            value={exports.value}
-            hint={exports.hint}
+            value={
+              exportsLatest
+                ? `${formatValue(exportsLatest.value, exportsLatest.unit)} ${exportsLatest.unit}`
+                : DASH
+            }
+            hint={
+              exportsLatest
+                ? `${exportsLatest.year} • ${exportsLatest.dataType}`
+                : "Not yet wired to a public source"
+            }
           />
           <KpiCard
             label="Latest source year"
             value={latestSourceYear}
-            hint={latestSourceYear === DASH ? "No actuals wired yet" : undefined}
+            hint={
+              latestSourceYear === DASH ? "No actuals wired yet" : undefined
+            }
+          />
+          <KpiCard
+            label="Actual datapoints"
+            value={actualCount}
+            hint={`of ${totalCount}`}
+            tone={actualCount > 0 ? "positive" : "neutral"}
           />
           <KpiCard
             label="Paid / Manual metrics"
@@ -159,23 +248,31 @@ export default function Industry() {
         </div>
         <div className="chart-grid">
           {CHART_SECTIONS.map((s) => {
-            const latest = findLatestActual(s.metricKey);
+            const series = getSeries(s.metricKey);
+            const hasEnough = series.length >= 2;
+            const latestLabel = hasEnough
+              ? `${series[0].year} – ${series[series.length - 1].year}`
+              : series[0]
+                ? `Latest: ${series[0].year}`
+                : "Awaiting data";
             return (
               <div key={s.key} className="chart-card">
                 <div className="chart-card__title">
                   <h3>{s.title}</h3>
-                  <span className="muted">
-                    {latest ? `Latest: ${latest.year}` : "Awaiting data"}
-                  </span>
+                  <span className="muted">{latestLabel}</span>
                 </div>
-                <EmptyState
-                  title="Not enough data to render"
-                  hint={
-                    latest
-                      ? "One year is wired up; trend needs at least two."
-                      : "Wire the underlying metric to a primary source to see the trend."
-                  }
-                />
+                {hasEnough ? (
+                  <LineTrendChart data={series} unit={s.unit} />
+                ) : (
+                  <EmptyState
+                    title="Not enough data to render"
+                    hint={
+                      series.length === 1
+                        ? "One year is wired up; trend needs at least two."
+                        : "Wire the underlying metric to a primary source to see the trend."
+                    }
+                  />
+                )}
               </div>
             );
           })}
@@ -206,7 +303,7 @@ export default function Industry() {
               {industryRecords.map((r) => (
                 <tr key={`${r.metricKey}-${r.year}`}>
                   <td className="col-name">{r.metricName}</td>
-                  <td>{r.value ?? DASH}</td>
+                  <td>{formatValue(r.value, r.unit)}</td>
                   <td className="muted">{r.unit}</td>
                   <td>{r.year}</td>
                   <td>

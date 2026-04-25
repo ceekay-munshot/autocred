@@ -183,7 +183,8 @@ export const SOURCE_REGISTRY: SourceRecord[] = [
     refreshFrequency: "Monthly",
     automationStatus: "SemiAuto",
     reliability: "High",
-    notes: "Best public proxy for retail demand; complements VAHAN.",
+    notes:
+      "Best public proxy for retail demand; complements VAHAN. The /press-release index page returns 200 to Firecrawl but 404 from origin — fetch the per-bulletin PDF directly. FY25 + March-25 PDF is wired in industryData.ts via scripts/extract-fada-retail.mjs.",
   },
   {
     id: "siam-public",

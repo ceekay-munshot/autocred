@@ -23,6 +23,10 @@ const TARGET_YEAR = "FY26";
 
 const today = new Date().toISOString().slice(0, 10);
 
+/** FADA FY25 + March 2025 retail-data PDF — primary public source. */
+const FADA_FY25_PDF_URL =
+  "https://www.fada.in/images/press-release/167f3463b1a212FADA%20Releases%20FY%202025%20and%20March%202025%20Vehicle%20Retail%20Data.pdf";
+
 export const industryRecords: DataQualityRecord[] = [
   // ─────────────── Volumes (wholesale + retail + EV + export) ───────────────
   {
@@ -73,21 +77,58 @@ export const industryRecords: DataQualityRecord[] = [
     notes:
       "Export volumes are usually disclosed on the SIAM public headline release alongside production / domestic.",
   },
+  // ── PV retail (FADA) — wired from public/data/fada-retail-fy25.json ──
+  // Retail registrations basis. Do NOT mix with SIAM/company wholesale.
   {
     metricKey: "industry.pv.retail.annual",
-    metricName: "PV retail sales — annual",
+    metricName: "PV retail sales — annual (FADA)",
     company: "Industry",
-    year: TARGET_YEAR,
-    value: null,
+    year: "FY25",
+    value: 4153432,
     unit: "units",
-    dataType: "Manual",
+    dataType: "Actual",
     sourceId: "fada",
-    sourceName: "FADA — Federation of Automobile Dealers Associations",
-    sourceUrl: "https://fada.in/",
-    confidence: "Low",
+    sourceName: "FADA — FY25 and March 2025 Vehicle Retail Data",
+    sourceUrl: FADA_FY25_PDF_URL,
+    sourceDate: "2025-04",
+    confidence: "High",
     lastUpdated: today,
     notes:
-      "FADA blocks server-side fetch. Analyst pulls the annual / FY summary press release from FADA Press Releases.",
+      "Retail registrations basis (not SIAM wholesale dispatch). Extracted from FADA press-release PDF; raw token \"41,53,432\".",
+  },
+  {
+    metricKey: "industry.pv.retail.annual",
+    metricName: "PV retail sales — annual (FADA)",
+    company: "Industry",
+    year: "FY24",
+    value: 3960602,
+    unit: "units",
+    dataType: "Actual",
+    sourceId: "fada",
+    sourceName: "FADA — FY25 and March 2025 Vehicle Retail Data",
+    sourceUrl: FADA_FY25_PDF_URL,
+    sourceDate: "2025-04",
+    confidence: "High",
+    lastUpdated: today,
+    notes:
+      "Retail registrations basis. Prior-year comparison row from same FADA PDF; raw token \"39,60,602\".",
+  },
+  {
+    metricKey: "industry.pv.retail.growth.yoy",
+    metricName: "PV retail YoY growth (FADA)",
+    company: "Industry",
+    year: "FY25",
+    value: 4.87,
+    unit: "%",
+    dataType: "Actual",
+    sourceId: "fada",
+    sourceName: "FADA — FY25 and March 2025 Vehicle Retail Data",
+    sourceUrl: FADA_FY25_PDF_URL,
+    sourceDate: "2025-04",
+    confidence: "High",
+    lastUpdated: today,
+    notes:
+      "As reported by FADA. Cross-checks with FY24 → FY25 unit ratio (192,830 / 3,960,602 ≈ 4.87%).",
   },
   {
     metricKey: "industry.pv.registrations.annual",
