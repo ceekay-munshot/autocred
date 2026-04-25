@@ -1,36 +1,29 @@
 #!/usr/bin/env node
 /**
  * test-firecrawl.mjs — server-side smoke test for the Firecrawl
- * integration. Confirms that the API key works and that Firecrawl can
- * extract content from public landing pages we already trust in the
- * source registry. No dashboard data is persisted — only the raw JSON
- * response per target is written to tmp/firecrawl-smoke/ for offline
- * inspection (the tmp/ directory is gitignored).
+ * integration. Confirms that the API key works and that Firecrawl
+ * can extract content from public landing pages we already trust
+ * in the source registry. No dashboard data is persisted — only
+ * the raw JSON response per target is written to
+ * tmp/firecrawl-smoke/ for offline inspection (tmp/ is gitignored).
  *
  * Run:
  *   npm run test:firecrawl
  *
- * Env loading:
- *   We rely on Node 22's native --env-file-if-exists flag (configured
- *   in package.json) to pull FIRECRAWL_API_KEY from a local `.env`.
- *   In CI the variable should be injected directly as a secret.
- *
  * Hard rules:
- *   - Do not test paid sources (SIAM paid reports, MarkLines, JATO,
- *     CMIE, Capitaline, Ace Equity, Bloomberg, Refinitiv, FactSet).
- *   - Do not write any dashboard data files from this script.
+ *   - Do not test paid sources.
  *   - Never log the API key or any header containing it.
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-
-const FIRECRAWL_ENDPOINT = "https://api.firecrawl.dev/v1/scrape";
+import { pickContent, scrapeUrl } from "./lib/firecrawl.mjs";
 
 /**
  * Public test URLs. All are already in src/data/sourceRegistry.ts as
- * Public sources. Anything paid/login-walled is intentionally absent.
- * `filename` is the local debug-output filename (no path).
+ * Public sources. The FADA target is the FY25 retail-data PDF (the
+ * /press-release index page returns 200 to Firecrawl but is a 404
+ * from the origin — the PDF is the actual source of truth).
  */
 const TEST_TARGETS = [
   {
@@ -44,71 +37,18 @@ const TEST_TARGETS = [
     filename: "tata-annual-reports.json",
   },
   {
-    label: "FADA — Press Releases",
-    url: "https://fada.in/press-release",
+    label: "FADA — FY25 Vehicle Retail Data (PDF)",
+    url:
+      "https://www.fada.in/images/press-release/167f3463b1a212FADA%20Releases%20FY%202025%20and%20March%202025%20Vehicle%20Retail%20Data.pdf",
     filename: "fada-press-releases.json",
   },
 ];
 
-const REQUEST_TIMEOUT_MS = 60_000;
 const SMOKE_DIR = "tmp/firecrawl-smoke";
-
-/**
- * Ordered list of response paths Firecrawl may use to deliver
- * extracted text. Probed top-to-bottom; the first non-empty string
- * wins. Easy to extend if the API surface changes again.
- */
-const CONTENT_FIELDS = [
-  ["data", "markdown"],
-  ["data", "html"],
-  ["data", "rawHtml"],
-  ["data", "content"],
-  ["markdown"],
-  ["html"],
-  ["content"],
-];
 
 function fail(msg) {
   console.error(`\n[ERROR] ${msg}\n`);
   process.exit(1);
-}
-
-function assertNoPaidUrl(url) {
-  const blocked = [
-    "marklines.com",
-    "jato.com",
-    "cmie.com",
-    "capitaline.com",
-    "aceanalyser.com",
-    "bloomberg.com",
-    "refinitiv.com",
-    "lseg.com",
-    "factset.com",
-  ];
-  const hit = blocked.find((b) => url.toLowerCase().includes(b));
-  if (hit) {
-    fail(`Refusing to scrape paid source (${hit}). Remove ${url} from TEST_TARGETS.`);
-  }
-}
-
-function pickContent(payload) {
-  if (!payload || typeof payload !== "object") return null;
-  for (const path of CONTENT_FIELDS) {
-    let val = payload;
-    let ok = true;
-    for (const key of path) {
-      if (val == null || typeof val !== "object") {
-        ok = false;
-        break;
-      }
-      val = val[key];
-    }
-    if (!ok) continue;
-    if (typeof val === "string" && val.trim().length > 0) {
-      return { field: path.join("."), content: val };
-    }
-  }
-  return null;
 }
 
 async function saveResponse(filename, payload, status) {
@@ -122,136 +62,113 @@ async function saveResponse(filename, payload, status) {
   return fullPath;
 }
 
-async function scrape({ label, url, filename }) {
-  assertNoPaidUrl(url);
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-  const start = Date.now();
-  let response;
+async function runOne(target) {
+  let env;
   try {
-    response = await fetch(FIRECRAWL_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`,
-      },
-      body: JSON.stringify({
-        url,
-        formats: ["markdown"],
-        onlyMainContent: true,
-      }),
-      signal: controller.signal,
-    });
+    env = await scrapeUrl({ url: target.url });
   } catch (err) {
-    clearTimeout(timer);
     return {
-      label,
-      url,
-      filename,
+      ...target,
       ok: false,
       kind: "network",
-      reason: `network/timeout: ${err.message ?? err}`,
-      ms: Date.now() - start,
+      reason: err.message ?? String(err),
     };
   }
-  clearTimeout(timer);
 
-  const ms = Date.now() - start;
-  const status = response.status;
-
-  let payload = null;
-  let parseError = null;
-  let rawText = "";
-  try {
-    rawText = await response.text();
-    payload = rawText ? JSON.parse(rawText) : null;
-  } catch (err) {
-    parseError = err.message ?? String(err);
+  if (env.networkError) {
+    return {
+      ...target,
+      ok: false,
+      kind: "network",
+      ms: env.ms,
+      reason: env.networkError,
+    };
   }
 
   let savedPath = null;
   try {
-    savedPath = await saveResponse(filename, payload ?? { _raw: rawText }, status);
+    savedPath = await saveResponse(
+      target.filename,
+      env.payload ?? { _raw: env.rawText },
+      env.status
+    );
   } catch (err) {
     console.warn(`    (warning) failed to save debug JSON: ${err.message ?? err}`);
   }
 
-  if (!response.ok) {
+  if (env.parseError) {
     return {
-      label,
-      url,
-      filename,
-      savedPath,
-      ok: false,
-      kind: "http",
-      status,
-      reason:
-        (payload && (payload.error || payload.message || payload.reason)) ??
-        rawText.slice(0, 200),
-      ms,
-    };
-  }
-
-  if (parseError) {
-    return {
-      label,
-      url,
-      filename,
-      savedPath,
+      ...target,
       ok: false,
       kind: "parse",
-      status,
-      reason: `non-JSON response: ${parseError}`,
-      preview: rawText.slice(0, 500),
-      ms,
+      status: env.status,
+      ms: env.ms,
+      savedPath,
+      reason: `non-JSON response: ${env.parseError}`,
+      preview: env.rawText.slice(0, 500),
     };
   }
 
-  const picked = pickContent(payload);
+  if (!env.ok) {
+    const body = env.payload;
+    return {
+      ...target,
+      ok: false,
+      kind: "http",
+      status: env.status,
+      ms: env.ms,
+      savedPath,
+      reason:
+        (body && (body.error || body.message || body.reason)) ??
+        env.rawText.slice(0, 200),
+    };
+  }
+
+  const picked = pickContent(env.payload);
   if (!picked) {
     return {
-      label,
-      url,
-      filename,
-      savedPath,
+      ...target,
       ok: false,
       kind: "empty",
-      status,
-      topKeys: payload && typeof payload === "object" ? Object.keys(payload) : [],
+      status: env.status,
+      ms: env.ms,
+      savedPath,
+      topKeys:
+        env.payload && typeof env.payload === "object"
+          ? Object.keys(env.payload)
+          : [],
       message:
-        (payload && (payload.error || payload.message || payload.reason)) || null,
-      preview: JSON.stringify(payload).slice(0, 500),
-      ms,
+        (env.payload &&
+          (env.payload.error || env.payload.message || env.payload.reason)) ||
+        null,
+      preview: JSON.stringify(env.payload).slice(0, 500),
     };
   }
 
   return {
-    label,
-    url,
-    filename,
-    savedPath,
+    ...target,
     ok: true,
-    status,
+    status: env.status,
+    ms: env.ms,
+    savedPath,
     field: picked.field,
     chars: picked.content.length,
     preview: picked.content.replace(/\s+/g, " ").trim().slice(0, 300),
-    ms,
   };
 }
 
 function printResult(r) {
   if (r.ok) {
-    console.log(`OK  (status ${r.status}, ${r.chars} chars via "${r.field}", ${r.ms} ms)`);
+    console.log(
+      `OK  (status ${r.status}, ${r.chars} chars via "${r.field}", ${r.ms} ms)`
+    );
     console.log(`    saved   : ${r.savedPath ?? "(unsaved)"}`);
     console.log(`    preview : ${r.preview}`);
     return;
   }
-
   switch (r.kind) {
     case "network":
-      console.log(`FAIL  (${r.ms} ms, ${r.kind})`);
+      console.log(`FAIL  (${r.ms ?? "?"} ms, network)`);
       console.log(`    reason  : ${r.reason}`);
       break;
     case "http":
@@ -266,7 +183,9 @@ function printResult(r) {
       console.log(`    raw     : ${r.preview}`);
       break;
     case "empty":
-      console.log(`FAIL  (status ${r.status}, ${r.ms} ms, no extractable content)`);
+      console.log(
+        `FAIL  (status ${r.status}, ${r.ms} ms, no extractable content)`
+      );
       console.log(`    saved   : ${r.savedPath ?? "(unsaved)"}`);
       console.log(`    keys    : ${r.topKeys.join(", ") || "(none)"}`);
       if (r.message) console.log(`    msg     : ${r.message}`);
@@ -281,29 +200,25 @@ async function main() {
       "FIRECRAWL_API_KEY is not set. Add it to a local .env file (Node 22 --env-file-if-exists) or as a CI secret."
     );
   }
-
   await mkdir(SMOKE_DIR, { recursive: true });
 
   console.log("Firecrawl smoke test");
   console.log("====================");
-  console.log(`Endpoint  : ${FIRECRAWL_ENDPOINT}`);
   console.log(`Targets   : ${TEST_TARGETS.length}`);
   console.log(`Debug dir : ${SMOKE_DIR}/\n`);
 
   const results = [];
   for (const target of TEST_TARGETS) {
     process.stdout.write(`• ${target.label} ... `);
-    const r = await scrape(target);
+    const r = await runOne(target);
     results.push(r);
     printResult(r);
     console.log("");
   }
 
   const passed = results.filter((r) => r.ok).length;
-  const total = results.length;
-
-  console.log(`Result: ${passed}/${total} extracted successfully.`);
-  process.exit(passed === total ? 0 : 1);
+  console.log(`Result: ${passed}/${results.length} extracted successfully.`);
+  process.exit(passed === results.length ? 0 : 1);
 }
 
 main().catch((err) => fail(err.stack ?? String(err)));
