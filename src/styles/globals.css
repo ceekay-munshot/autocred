@@ -447,3 +447,84 @@ h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: 
   border: 1px solid var(--border);
   font-weight: 600;
 }
+
+/* ---------- KPI cards ---------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.kpi {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--steel-300);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kpi__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.kpi__value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.kpi__hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.kpi--info { border-left-color: var(--accent-blue); }
+.kpi--positive { border-left-color: var(--pos-600); }
+.kpi--warning { border-left-color: #b3651a; }
+.kpi--negative { border-left-color: var(--neg-600); }
+
+/* ---------- Rule list ---------- */
+.rule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.rule-list li {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+.rule-list__label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--navy-900);
+}
+
+.rule-list__body {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 720px) {
+  .rule-list li {
+    grid-template-columns: 1fr;
+  }
+}
