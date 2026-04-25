@@ -1,0 +1,290 @@
+/* AutoCred — Indian PV Investor Dashboard
+   Design system: clean white surfaces, navy/steel base,
+   muted blue accents, semantic green/red for deltas only. */
+
+:root {
+  /* Surface */
+  --bg-app: #f5f7fa;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f0f3f7;
+  --bg-elevated: #ffffff;
+
+  /* Text */
+  --text-primary: #0f2a47;
+  --text-secondary: #4a5b71;
+  --text-muted: #7a8699;
+  --text-inverse: #ffffff;
+
+  /* Brand / accent */
+  --navy-900: #0f2a47;
+  --navy-800: #173656;
+  --navy-700: #224a73;
+  --steel-600: #4a5b71;
+  --steel-300: #cfd6e0;
+  --accent-blue: #2f6fb5;
+  --accent-blue-soft: #e6eff9;
+
+  /* Semantic — only for positive/negative deltas */
+  --pos-600: #1f8a4c;
+  --pos-50: #e7f5ec;
+  --neg-600: #c0392b;
+  --neg-50: #fbeae7;
+
+  /* Lines & shadow */
+  --border: #e3e8ef;
+  --border-strong: #cfd6e0;
+  --shadow-sm: 0 1px 2px rgba(15, 42, 71, 0.04);
+  --shadow-md: 0 2px 6px rgba(15, 42, 71, 0.06);
+
+  /* Radius & spacing */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h1 { font-size: 22px; }
+h2 { font-size: 18px; }
+h3 { font-size: 15px; }
+h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+
+/* ---------- Layout ---------- */
+.app-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  height: 100vh;
+}
+
+.sidebar {
+  background: var(--navy-900);
+  color: var(--text-inverse);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  border-right: 1px solid var(--navy-800);
+}
+
+.sidebar__brand {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--navy-800);
+  margin-bottom: 16px;
+}
+
+.sidebar__brand-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-inverse);
+}
+
+.sidebar__brand-sub {
+  font-size: 11px;
+  color: #a9b8cc;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 12px;
+}
+
+.sidebar__item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #cfd9e6;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.sidebar__item:hover {
+  background: var(--navy-800);
+  color: var(--text-inverse);
+}
+
+.sidebar__item--active {
+  background: var(--navy-700);
+  color: var(--text-inverse);
+}
+
+.sidebar__footer {
+  margin-top: auto;
+  padding: 16px 20px 0;
+  border-top: 1px solid var(--navy-800);
+  font-size: 11px;
+  color: #8da0b8;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header__title {
+  display: flex;
+  flex-direction: column;
+}
+
+.header__crumb {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.header__meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.content {
+  padding: 24px 28px;
+  overflow: auto;
+  flex: 1;
+}
+
+/* ---------- Cards / Panels ---------- */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+}
+
+.card + .card {
+  margin-top: 16px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.panel-title h2 {
+  font-size: 16px;
+}
+
+.panel-title small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ---------- Empty state ---------- */
+.empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--bg-subtle);
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.empty__hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---------- Tables (skeleton for later tabs) ---------- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+}
+
+/* ---------- Semantic deltas ---------- */
+.delta-pos { color: var(--pos-600); font-weight: 600; }
+.delta-neg { color: var(--neg-600); font-weight: 600; }
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-blue-soft);
+  color: var(--accent-blue);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
