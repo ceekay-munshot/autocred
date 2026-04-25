@@ -10,6 +10,7 @@ vite.config.d.ts
 .env
 .env.local
 .env.*.local
+tmp/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
