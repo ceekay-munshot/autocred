@@ -1,9 +1,11 @@
 import type { DataQualityRecord } from "../types/dataQuality";
+import { industryRecords } from "./industryData";
 
 /**
  * Central store of every dashboard datapoint with its provenance.
- * Each tab that wires up real numbers should append rows here so the
- * Data Quality view stays accurate by construction.
+ * Each tab owns its own record file (e.g. industryData.ts) and we
+ * combine them here so the Data Quality view stays accurate by
+ * construction.
  *
  * Rules (also surfaced in the UI):
  *  - Every record must reference a sourceId from src/data/sourceRegistry.ts
@@ -12,4 +14,6 @@ import type { DataQualityRecord } from "../types/dataQuality";
  *  - Wholesale (company / SIAM) and retail (VAHAN / FADA) numbers must
  *    not be mixed in a single record.
  */
-export const dataQualityRecords: DataQualityRecord[] = [];
+export const dataQualityRecords: DataQualityRecord[] = [
+  ...industryRecords,
+];
